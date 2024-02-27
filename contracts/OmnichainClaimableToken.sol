@@ -30,7 +30,6 @@ contract OmnichainClaimableToken is zContract, ERC721 {
         bytes32 s;
     }
 
-
     /// Initialize the contract with the max supply and the signer address
     constructor(address systemContractAddress, uint256 maxSupplyInit, address signerInit) ERC721("OmnichainClaimableToken", "OMTC") {
         systemContract = SystemContract(systemContractAddress);
