@@ -1,3 +1,6 @@
+import "./tasks/interact";
+import "./tasks/deploy";
+import "./tasks/burnAndRelease";
 import "@nomicfoundation/hardhat-toolbox";
 import "@zetachain/toolkit/tasks";
 

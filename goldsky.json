@@ -1,0 +1,18 @@
+{
+  "version": "1",
+  "name": "OmnichainClaimableToken",
+  "abis": {
+    "NFT": {
+      "path": "artifacts/contracts/OmnichainClaimableToken.sol/OmnichainClaimableToken.json"
+    }
+  },
+  "chains": ["zetachain-testnet"],
+  "instances": [
+    {
+      "abi": "NFT",
+      "address": "0x473f001B0034565725F372b8eE60364faA4AffF5", // Your contract address
+      "chain": "zetachain-testnet",
+      "startBlock": 3798058 // The block number that your contract was deployed on
+    }
+  ]
+}
