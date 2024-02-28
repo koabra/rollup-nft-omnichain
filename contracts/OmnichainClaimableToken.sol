@@ -22,6 +22,10 @@ contract OmnichainClaimableToken is zContract, ERC721 {
     mapping(uint256 => uint256) public tokenAmounts;
     mapping(uint256 => uint256) public tokenChains;
 
+    // Supported ERC721 call methods to reroute
+    bytes32 public constant METHOD_TRANSFER = keccak256("transfer");
+    bytes32 public constant METHOD_MINT = keccak256("mint");
+
     struct MintedToken {
         bool exists;
         address user;
@@ -30,10 +34,14 @@ contract OmnichainClaimableToken is zContract, ERC721 {
         bytes32 s;
     }
 
-<<<<<<< HEAD
-=======
+    struct MessageParams {
+        bool exists;
+        address user;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
 
->>>>>>> b37ec12 (NFT rollup Omnichain initial commit)
     /// Initialize the contract with the max supply and the signer address
     constructor(address systemContractAddress, uint256 maxSupplyInit, address signerInit) ERC721("OmnichainClaimableToken", "OMTC") {
         systemContract = SystemContract(systemContractAddress);
@@ -55,30 +63,52 @@ contract OmnichainClaimableToken is zContract, ERC721 {
         uint256 amount,
         bytes calldata message
     ) external override onlySystem {
-        address recipient;
+        address _user;
+        uint256 _tokenId;
+        uint8 _v;
+        bytes32 _r;
+        bytes32 _s;
+        bytes32 _callMethod;
 
         if (context.chainID == BITCOIN) {
-            recipient = BytesHelperLib.bytesToAddress(message, 0);
+            // Address MUST be the first argument address type
+            _user = BytesHelperLib.bytesToAddress(message, 0);
+            // TODO: construct other values by offsetting the type length of the message args
         } else {
-            recipient = abi.decode(message, (address));
+            // TODO: Check integrity of the method by ensuring start and end values of the callMethod frame
+            (_user, _tokenId, _v, _r, _s, _callMethod) = abi.decode(message,(address, uint256, uint8, bytes32, bytes32, bytes32));
         }
 
-        _mintNFT(recipient, context.chainID, amount);
+        require(_callMethod != 0, "No call method present in the message");
+
+        if (_callMethod = METHOD_MINT){
+            require(_user != 0, "Need to provide the address to where to mint the NFT");
+            require(_v != 0, "Need to provide the signature params v");
+            require(_r != 0, "Need to provide the signature params r");
+            require(_s != 0, "Need to provide the signature params s");
+            _claimAndMint(_user, context.chainID, amount, _tokenID, _v, _r, _s);
+        } else if (_callMethod = METHOD_TRANSFER) {
+            require(_user != 0, "Need to provide the address of the NFT owner");
+            require(_transferToAddress != 0, "Need to provide the address to mint to");
+            require(_tokenID != 0, "Need to provide the tokenID of the NFT to transfer");
+            safeTransferFrom(_user, _transferToAddress, _tokenID);
+        }
+
     }
 
-    function _mintNFT(
-        address recipient,
-        uint256 chainId,
-        uint256 amount
-    ) private {
-        uint256 tokenId = _tokenIdCounter.current();
-        _safeMint(recipient, tokenId);
-        tokenChains[tokenId] = chainId;
-        tokenAmounts[tokenId] = amount;
-        _tokenIdCounter.increment();
-    }
+    // function _mintNFT(
+    //     address recipient,
+    //     uint256 chainId,
+    //     uint256 amount
+    // ) private {
+    //     uint256 tokenId = _tokenIdCounter.current();
+    //     _safeMint(recipient, tokenId);
+    //     tokenChains[tokenId] = chainId;
+    //     tokenAmounts[tokenId] = amount;
+    //     _tokenIdCounter.increment();
+    // }
 
-    function burnNFT(uint256 tokenId, bytes memory recipient) public {
+    function burnAndRelaseLockedToken(uint256 tokenId, bytes memory recipient) public {
         require(
             _isApprovedOrOwner(_msgSender(), tokenId),
             "Caller is not owner nor approved"
@@ -96,12 +126,13 @@ contract OmnichainClaimableToken is zContract, ERC721 {
         delete tokenAmounts[tokenId];
         delete tokenChains[tokenId];
     }
+
+    function decodeMessage(bytes memory message) public view returns (uint256, address, uint8, bytes32, bytes32) {
+        return abi.decode(message, (uint256, address, uint8, bytes32, bytes32));
+    }
     
-
-
-
     // Function to mint a token for a user
-    function mint(uint256 tokenId, address user, uint8 v, bytes32 r, bytes32 s) external {
+    function _claimAndMint(address user, uint256 chainId, uint256 amount, uint256 tokenId, uint8 v, bytes32 r, bytes32 s) private {
         require(!mintedTokens_[tokenId].exists, "MyTokenClaimable: token already minted");
         // Create the message hash based on the tokenId and the user address
         bytes32 messageHash = keccak256(abi.encodePacked(tokenId, user));
@@ -110,6 +141,10 @@ contract OmnichainClaimableToken is zContract, ERC721 {
 
         // Ensure the recovered signer is the same as the contract's signer
         require(recoveredSigner == signer_, "MyTokenClaimable: invalid signature");
+
+        // Keeping track of amount and Chains where minted ID
+        tokenChains[tokenId] = chainId;
+        tokenAmounts[tokenId] = amount;
         
         // Record the token as minted for the user
         mintedTokens_[tokenId] = MintedToken(true, user, v, r, s);

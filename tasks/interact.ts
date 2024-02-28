@@ -10,44 +10,57 @@ import ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 const main = async (args: any, hre: HardhatRuntimeEnvironment) => {
   const [signer] = await hre.ethers.getSigners();
 
-  const data = prepareData(
-    args.contract,
-    ["address", ],
-    [args.recipient, ]
+  // const data = prepareData(args.contract, ["address"], [args.recipient]);
+  const data = prepareData(args.contract, ["address"], [args.recipient]);
+
+  const abi = ethers.utils.defaultAbiCoder;
+  const encodeData = abi.encode(
+    ["address"], // encode as address array
+    [args.recipient]
   );
+  // const encodeData = ethers.utils.solidityKeccak256(
+  //   ["address", "address"], // encode as address array
+  //   [args.contract, args.contract]
+  // );
+
+  console.log("data", data);
+  console.log("encodeData", encodeData);
 
   let tx;
 
-  if (args.token) {
-    const custodyAddress = getAddress("erc20Custody", hre.network.name as any);
-    const custodyContract = new ethers.Contract(
-      custodyAddress,
-      ERC20Custody.abi,
-      signer
-    );
-    const tokenContract = new ethers.Contract(args.token, ERC20.abi, signer);
-    const decimals = await tokenContract.decimals();
-    const value = parseUnits(args.amount, decimals);
-    const approve = await tokenContract.approve(custodyAddress, value);
-    await approve.wait();
+  //   if (args.token) {
+  //     const custodyAddress = getAddress(
+  //       "erc20Custodysssss",
+  //       hre.network.name as any
+  //     );
+  //     const custodyContract = new ethers.Contract(
+  //       custodyAddress,
+  //       ERC20Custody.abi,
+  //       signer
+  //     );
+  //     const tokenContract = new ethers.Contract(args.token, ERC20.abi, signer);
+  //     const decimals = await tokenContract.decimals();
+  //     const value = parseUnits(args.amount, decimals);
+  //     const approve = await tokenContract.approve(custodyAddress, value);
+  //     await approve.wait();
 
-    tx = await custodyContract.deposit(signer.address, args.token, value, data);
-    tx.wait();
-  } else {
-    const value = parseUnits(args.amount, 18);
-    const to = getAddress("tss", hre.network.name as any);
-    tx = await signer.sendTransaction({ data, to, value });
-  }
+  //     tx = await custodyContract.deposit(signer.address, args.token, value, data);
+  //     tx.wait();
+  //   } else {
+  //     const value = parseUnits(args.amount, 18);
+  //     const to = getAddress("tss", hre.network.name as any);
+  //     tx = await signer.sendTransaction({ data, to, value });
+  //   }
 
-  if (args.json) {
-    console.log(JSON.stringify(tx, null, 2));
-  } else {
-    console.log(`🔑 Using account: ${signer.address}\n`);
+  //   if (args.json) {
+  //     console.log(JSON.stringify(tx, null, 2));
+  //   } else {
+  //     console.log(`🔑 Using account: ${signer.address}\n`);
 
-    console.log(`🚀 Successfully broadcasted a token transfer transaction on ${hre.network.name} network.
-📝 Transaction hash: ${tx.hash}
-  `);
-  }
+  //     console.log(`🚀 Successfully broadcasted a token transfer transaction on ${hre.network.name} network.
+  // 📝 Transaction hash: ${tx.hash}
+  //   `);
+  //   }
 };
 
 task("interact", "Interact with the contract", main)
@@ -55,4 +68,4 @@ task("interact", "Interact with the contract", main)
   .addParam("amount", "Amount of tokens to send")
   .addOptionalParam("token", "The address of the token to send")
   .addFlag("json", "Output in JSON")
-  .addParam("recipient")
+  .addParam("recipient");
