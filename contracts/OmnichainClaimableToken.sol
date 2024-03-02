@@ -6,6 +6,7 @@ import "@zetachain/protocol-contracts/contracts/zevm/interfaces/zContract.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@zetachain/toolkit/contracts/BytesHelperLib.sol";
+import "hardhat/console.sol";
 
 contract OmnichainClaimableToken is zContract, ERC721 {
     SystemContract public immutable systemContract;
@@ -68,6 +69,7 @@ contract OmnichainClaimableToken is zContract, ERC721 {
         uint8 _v;
         bytes32 _r;
         bytes32 _s;
+        address _transferToAddress;
         bytes32 _callMethod;
 
         if (context.chainID == BITCOIN) {
@@ -76,22 +78,25 @@ contract OmnichainClaimableToken is zContract, ERC721 {
             // TODO: construct other values by offsetting the type length of the message args
         } else {
             // TODO: Check integrity of the method by ensuring start and end values of the callMethod frame
-            (_user, _tokenId, _v, _r, _s, _callMethod) = abi.decode(message,(address, uint256, uint8, bytes32, bytes32, bytes32));
+            (_user, _tokenId, _v, _r, _s, _transferToAddress, _callMethod) = abi.decode(message,(address, uint256, uint8, bytes32, bytes32, address, bytes32));
         }
 
-        require(_callMethod != 0, "No call method present in the message");
+        // require(_callMethod != 0, "No call method present in the message");
 
-        if (_callMethod = METHOD_MINT){
-            require(_user != 0, "Need to provide the address to where to mint the NFT");
+        console.log("_transferToAddress", _transferToAddress);
+
+        if (_callMethod == METHOD_MINT){
+            console.log("Minting..");
+            // require(_user, "Need to provide the address to where to mint the NFT");
             require(_v != 0, "Need to provide the signature params v");
             require(_r != 0, "Need to provide the signature params r");
             require(_s != 0, "Need to provide the signature params s");
-            _claimAndMint(_user, context.chainID, amount, _tokenID, _v, _r, _s);
-        } else if (_callMethod = METHOD_TRANSFER) {
-            require(_user != 0, "Need to provide the address of the NFT owner");
-            require(_transferToAddress != 0, "Need to provide the address to mint to");
-            require(_tokenID != 0, "Need to provide the tokenID of the NFT to transfer");
-            safeTransferFrom(_user, _transferToAddress, _tokenID);
+            _claimAndMint(_user, context.chainID, amount, _tokenId, _v, _r, _s);
+        } else if (_callMethod == METHOD_TRANSFER) {
+            // require(_user != 0, "Need to provide the address of the NFT owner");
+            // require(_transferToAddress != 0, "Need to provide the address to mint to");
+            require(_tokenId != 0, "Need to provide the tokenID of the NFT to transfer");
+            safeTransferFrom(_user, _transferToAddress, _tokenId);
         }
 
     }
